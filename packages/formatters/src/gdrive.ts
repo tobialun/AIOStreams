@@ -20,11 +20,11 @@ export function gdriveFormat(
     const serviceShortName =
       serviceDetails.find((service) => service.id === stream.provider!.id)
         ?.shortName || stream.provider.id;
-    name += `[${serviceShortName}${cacheStatus}]\n`;
+    name += `[${serviceShortName}${cacheStatus}] `;
   }
 
   if (stream.torrent?.infoHash) {
-    name += `[P2P]\n`;
+    name += `[P2P] `;
   }
 
   name += `${stream.addon.name} ${stream.personal ? '(Your Media) ' : ''}`;
@@ -36,9 +36,17 @@ export function gdriveFormat(
 
   // let description: string = `${stream.quality !== 'Unknown' ? '🎥 ' + stream.quality + ' ' : ''}${stream.encode !== 'Unknown' ? '🎞️ ' + stream.encode : ''}`;
   let description: string = '';
-  if (stream.quality || stream.encode) {
+  if (
+    stream.quality ||
+    stream.encode ||
+    (stream.releaseGroup && !minimalistic)
+  ) {
     description += stream.quality !== 'Unknown' ? `🎥 ${stream.quality} ` : '';
     description += stream.encode !== 'Unknown' ? `🎞️ ${stream.encode} ` : '';
+    description +=
+      stream.releaseGroup !== 'Unknown' && !minimalistic
+        ? `🏷️ ${stream.releaseGroup}`
+        : '';
     description += '\n';
   }
 
@@ -81,7 +89,7 @@ export function gdriveFormat(
         (language) => languageToEmoji(language) || language
       );
     }
-    description += `🔊 ${languages.join(' | ')}`;
+    description += `🌎 ${languages.join(minimalistic ? ' / ' : ' | ')}`;
     description += '\n';
   }
 
