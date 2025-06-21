@@ -1,0 +1,17 @@
+name: Redeploy Koyeb App
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Koyeb Redeploy
+        run: |
+          curl -X POST \
+          -H "Authorization: Bearer ${{ secrets.KOYEB_TOKEN }}" \
+          https://app.koyeb.com/v1/apps/aiostreams/services/41139c72-62d8-4f3c-930c-0924dd99903b/redeploy
