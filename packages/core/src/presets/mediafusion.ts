@@ -54,7 +54,10 @@ class MediaFusionStreamParser extends StreamParser {
     if (file && file.includes('┈➤')) {
       return file.split('┈➤')[1].trim();
     }
-    return file?.trim();
+    if (file) {
+      return file.trim();
+    }
+    return super.getFilename(stream, currentParsedStream);
   }
 
   protected override getIndexer(

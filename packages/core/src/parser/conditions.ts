@@ -73,6 +73,25 @@ export abstract class BaseConditionParser {
       );
     };
 
+    // gets all streams that have a regex matched with an index in the range of min and max
+    this.parser.functions.regexMatchedInRange = function (
+      streams: ParsedStream[],
+      min: number,
+      max: number
+    ) {
+      return streams.filter((stream) => {
+        if (!stream.regexMatched) {
+          return false;
+        } else if (
+          stream.regexMatched.index < min ||
+          stream.regexMatched.index > max
+        ) {
+          return false;
+        }
+        return true;
+      });
+    };
+
     this.parser.functions.indexer = function (
       streams: ParsedStream[],
       indexer: string
@@ -347,6 +366,19 @@ export abstract class BaseConditionParser {
         );
       }
       return streams.length;
+    };
+
+    this.parser.functions.not = function (
+      streams: ParsedStream[],
+      originalStreams: ParsedStream[]
+    ) {
+      if (!Array.isArray(originalStreams)) {
+        throw new Error(
+          "Please use one of 'totalStreams' or 'previousStreams' as the second argument"
+        );
+      }
+      const streamIds = new Set(streams.map((stream) => stream.id));
+      return originalStreams.filter((stream) => !streamIds.has(stream.id));
     };
   }
 
