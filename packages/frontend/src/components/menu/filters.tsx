@@ -1396,6 +1396,34 @@ function Content() {
                   </div>
                 </SettingsCard>
                 <TextInputs
+                  label="Required Filter Conditions"
+                  itemName="Condition"
+                  help="The conditions to apply to the streams. Streams selected by any of these conditions will be required to be in the results."
+                  placeholder="addon(type(streams, 'debrid'), 'TorBox')"
+                  values={userData.requiredFilterConditions || []}
+                  onValuesChange={(values) => {
+                    setUserData((prev) => ({
+                      ...prev,
+                      requiredFilterConditions: values,
+                    }));
+                  }}
+                  onValueChange={(value, index) => {
+                    setUserData((prev) => ({
+                      ...prev,
+                      requiredFilterConditions: [
+                        ...(prev.requiredFilterConditions || []).slice(
+                          0,
+                          index
+                        ),
+                        value,
+                        ...(prev.requiredFilterConditions || []).slice(
+                          index + 1
+                        ),
+                      ],
+                    }));
+                  }}
+                />
+                <TextInputs
                   label="Excluded Filter Conditions"
                   itemName="Condition"
                   help="The conditions to apply to the streams. Streams selected by any of these conditions will be excluded from the results."
@@ -1417,6 +1445,34 @@ function Content() {
                         ),
                         value,
                         ...(prev.excludedFilterConditions || []).slice(
+                          index + 1
+                        ),
+                      ],
+                    }));
+                  }}
+                />
+                <TextInputs
+                  label="Preferred Filter Conditions"
+                  itemName="Condition"
+                  help="The conditions to apply to the streams. Streams selected by any of these conditions will be preferred over other conditions."
+                  placeholder="addon(type(streams, 'debrid'), 'TorBox')"
+                  values={userData.preferredFilterConditions || []}
+                  onValuesChange={(values) => {
+                    setUserData((prev) => ({
+                      ...prev,
+                      preferredFilterConditions: values,
+                    }));
+                  }}
+                  onValueChange={(value, index) => {
+                    setUserData((prev) => ({
+                      ...prev,
+                      preferredFilterConditions: [
+                        ...(prev.preferredFilterConditions || []).slice(
+                          0,
+                          index
+                        ),
+                        value,
+                        ...(prev.preferredFilterConditions || []).slice(
                           index + 1
                         ),
                       ],

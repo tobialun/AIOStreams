@@ -259,7 +259,7 @@ export async function validateConfig(
 
   if (Env.ADDON_PASSWORD && config.addonPassword !== Env.ADDON_PASSWORD) {
     throw new Error(
-      'The password in the config does not match the password in the environment variables'
+      'Invalid addon password. Please enter the value of the ADDON_PASSWORD environment variable '
     );
   }
   const validations = {
@@ -310,7 +310,7 @@ export async function validateConfig(
   if (config.excludedFilterConditions) {
     for (const condition of config.excludedFilterConditions) {
       try {
-        await SelectConditionParser.testSelect([], condition);
+        await SelectConditionParser.testSelect(condition);
       } catch (error) {
         throw new Error(`Invalid excluded filter condition: ${error}`);
       }

@@ -566,6 +566,7 @@ const SORT_CRITERIA = [
   'cached',
   'library',
   'keyword',
+  'filterConditionMatched',
 ] as const;
 
 export const MIN_SIZE = 0;
@@ -715,6 +716,15 @@ export const SORT_CRITERIA_DETAILS = {
       'Streams that do not match any of your keywords are preferred',
     descendingDescription:
       'Streams that match any of your keywords are preferred',
+  },
+  filterConditionMatched: {
+    name: 'Filter Condition Matched',
+    defaultDirection: 'desc',
+    description: 'Whether the stream matches any of your filter conditions',
+    ascendingDescription:
+      'Streams that do not match any of your filter conditions are preferred',
+    descendingDescription:
+      'Streams that match any of your filter conditions are preferred',
   },
 } as const;
 
