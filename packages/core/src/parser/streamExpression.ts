@@ -2,7 +2,7 @@ import { Parser } from 'expr-eval';
 import { ParsedStream, ParsedStreams, ParsedStreamSchema } from '../db';
 import bytes from 'bytes';
 
-export abstract class BaseConditionParser {
+export abstract class StreamExpressionEngine {
   protected parser: Parser;
 
   constructor() {
@@ -11,7 +11,7 @@ export abstract class BaseConditionParser {
       operators: {
         comparison: true,
         logical: true,
-        add: false,
+        add: true,
         concatenate: false,
         conditional: true,
         divide: false,
@@ -19,7 +19,7 @@ export abstract class BaseConditionParser {
         multiply: false,
         power: false,
         remainder: false,
-        subtract: false,
+        subtract: true,
         sin: false,
         cos: false,
         tan: false,
@@ -46,8 +46,8 @@ export abstract class BaseConditionParser {
         length: false,
         in: false,
         random: false,
-        min: false,
-        max: false,
+        min: true,
+        max: true,
         assignment: false,
         fndef: false,
         cbrt: false,
@@ -474,6 +474,24 @@ export abstract class BaseConditionParser {
       const streamIds = new Set(streams.map((stream) => stream.id));
       return originalStreams.filter((stream) => !streamIds.has(stream.id));
     };
+
+    this.parser.functions.merge = function (
+      ...streamArrays: ParsedStream[][]
+    ): ParsedStream[] {
+      const seen = new Set<string>();
+      const merged: ParsedStream[] = [];
+
+      for (const array of streamArrays) {
+        for (const stream of array) {
+          if (!seen.has(stream.id)) {
+            seen.add(stream.id);
+            merged.push(stream);
+          }
+        }
+      }
+
+      return merged;
+    };
   }
 
   protected async evaluateCondition(condition: string): Promise<any> {
@@ -569,7 +587,7 @@ export abstract class BaseConditionParser {
   }
 }
 
-export class GroupConditionParser extends BaseConditionParser {
+export class GroupConditionEvaluator extends StreamExpressionEngine {
   private previousStreams: ParsedStream[];
   private totalStreams: ParsedStream[];
   private previousGroupTimeTaken: number;
@@ -597,17 +615,17 @@ export class GroupConditionParser extends BaseConditionParser {
     this.parser.consts.totalTimeTaken = this.totalTimeTaken;
   }
 
-  async parse(condition: string) {
+  async evaluate(condition: string) {
     return await this.evaluateCondition(condition);
   }
 
-  static async testParse(condition: string) {
-    const parser = new GroupConditionParser([], [], 0, 0, 'movie');
-    return await parser.parse(condition);
+  static async testEvaluate(condition: string) {
+    const parser = new GroupConditionEvaluator([], [], 0, 0, 'movie');
+    return await parser.evaluate(condition);
   }
 }
 
-export class SelectConditionParser extends BaseConditionParser {
+export class StreamSelector extends StreamExpressionEngine {
   constructor() {
     super();
   }
@@ -640,7 +658,7 @@ export class SelectConditionParser extends BaseConditionParser {
   }
 
   static async testSelect(condition: string): Promise<ParsedStream[]> {
-    const parser = new SelectConditionParser();
+    const parser = new StreamSelector();
     const streams = [
       parser.createTestStream({ type: 'debrid' }),
       parser.createTestStream({ type: 'debrid' }),
