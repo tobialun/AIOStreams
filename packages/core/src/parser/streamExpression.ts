@@ -462,13 +462,13 @@ export abstract class StreamExpressionEngine {
       return streams.length;
     };
 
-    this.parser.functions.not = function (
+    this.parser.functions.negate = function (
       streams: ParsedStream[],
       originalStreams: ParsedStream[]
     ) {
-      if (!Array.isArray(originalStreams)) {
+      if (!Array.isArray(originalStreams) || !Array.isArray(streams)) {
         throw new Error(
-          "Please use one of 'totalStreams' or 'previousStreams' as the second argument"
+          "Both arguments of the 'negate' function must be arrays of streams"
         );
       }
       const streamIds = new Set(streams.map((stream) => stream.id));

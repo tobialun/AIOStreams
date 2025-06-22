@@ -116,7 +116,7 @@ Setting up AIOStreams is simple.
 
 1.  **Choose a Hosting Method**
     - **🔓 Public Instance**: Use the **[Community Instance (Hosted by ElfHosted)](https://aiostreams.elfhosted.com/configure)**. It's free, but rate-limited and has Torrentio disabled.
-    - **🛠️ Self-Host / Paid Hosting**: For full control and no rate limits, host it yourself (Docker, Cloudflare) or use a paid service like **[ElfHosted](https://store.elfhosted.com/product/aiostreams/elf/viren070/)** (using this link supports the project!).
+    - **🛠️ Self-Host / Paid Hosting**: For full control and no rate limits, host it yourself (Docker) or use a paid service like **[ElfHosted](https://store.elfhosted.com/product/aiostreams/elf/viren070/)** (using this link supports the project!).
 
 2.  **Configure Your Addon**
     - Open the `/stremio/configure` page of your AIOStreams instance in a web browser.
