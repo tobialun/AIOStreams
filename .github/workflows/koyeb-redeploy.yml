@@ -1,29 +1,20 @@
-name: Redeploy Koyeb via API
+run: |
+  echo "🚀 Triggering Koyeb redeploy..."
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+    -H "Authorization: Bearer ${{ secrets.KOYEB_TOKEN }}" \
+    https://app.koyeb.com/v1/apps/aiostreams/services/41139c72-62d8-4f3c-930c-0924dd99903b/redeploy)
 
-jobs:
-  redeploy:
-    runs-on: ubuntu-latest
+  BODY=$(echo "$RESPONSE" | head -n -1)
+  STATUS=$(echo "$RESPONSE" | tail -n1)
 
-    steps:
-      - name: Trigger Koyeb redeploy
-        run: |
-          echo "🚀 Triggering Koyeb redeploy..."
-          
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            -H "Authorization: Bearer ${{ secrets.KOYEB_TOKEN }}" \
-            https://app.koyeb.com/v1/apps/aiostreams/services/41139c72-62d8-4f3c-930c-0924dd99903b/redeploy)
+  echo "📡 Response status: $STATUS"
+  echo "📝 Response body:"
+  echo "$BODY"
 
-          echo "📡 Koyeb response status: $STATUS"
-
-          if [ "$STATUS" -eq 204 ]; then
-            echo "✅ Redeploy triggered successfully at $(date -u)"
-          else
-            echo "❌ Failed to trigger redeploy – status: $STATUS"
-            exit 1
-          fi
+  if [ "$STATUS" -ne 204 ]; then
+    echo "❌ Koyeb redeploy failed."
+    exit 1
+  else
+    echo "✅ Koyeb redeploy succeeded."
+  fi
