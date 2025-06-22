@@ -17,7 +17,7 @@ jobs:
 
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             -H "Authorization: Bearer ${{ secrets.KOYEB_TOKEN }}" \
-            https://app.koyeb.com/v1/apps/aiostreams/services/41139c72-62d8-4f3c-930c-0924dd99903b/redeploy)
+            https://app.koyeb.com/v1/services/41139c72-62d8-4f3c-930c-0924dd99903b/redeploy)
 
           BODY=$(echo "$RESPONSE" | head -n -1)
           STATUS=$(echo "$RESPONSE" | tail -n1)
