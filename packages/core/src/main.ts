@@ -228,6 +228,7 @@ export class AIOStreams {
     // remove uneccessary info that is already present in the original stream above
     copy.parsedFile = undefined;
     copy.size = undefined;
+    copy.folderSize = undefined;
     copy.torrent = undefined;
     copy.indexer = undefined;
     copy.age = undefined;
@@ -772,7 +773,7 @@ export class AIOStreams {
         // an id prefix technically says it supports all ids
 
         // leaving idPrefixes as null/undefined causes various odd issues with stremio even though it says it is optional.
-        // therefore, we set it as normal, but if there comes an addon that doesn't support any id prefixes, we set it to null
+        // therefore, we set it as normal, but if there comes an addon that doesn't support any id prefixes, we set it to undefined
         // this fixes issues in most cases as most addons do provide idPrefixes
         if (existing) {
           existing.types = [...new Set([...existing.types, ...resource.types])];
@@ -786,17 +787,25 @@ export class AIOStreams {
               ...new Set([...existing.idPrefixes, ...resource.idPrefixes]),
             ];
           } else {
-            // if an addon for this type does not provide idPrefixes, we set it to null
+            logger.warn(
+              `Addon ${this.getAddonName(addon)} does not provide idPrefixes for type ${resource.name}, setting idPrefixes to undefined`
+            );
+            // if an addon for this type does not provide idPrefixes, we set it to undefined
             // to ensure it works with at least some platforms on stremio rather than none.
-            existing.idPrefixes = null;
+            existing.idPrefixes = undefined;
           }
         } else {
+          if (!resource.idPrefixes?.length) {
+            logger.warn(
+              `Addon ${this.getAddonName(addon)} does not provide idPrefixes for type ${resource.name}, setting idPrefixes to undefined`
+            );
+          }
           this.finalResources.push({
             ...resource,
             // explicitly set to null
             idPrefixes: resource.idPrefixes?.length
               ? resource.idPrefixes
-              : null,
+              : undefined,
             // idPrefixes: resource.idPrefixes
             //   ? [...resource.idPrefixes]
             //   : undefined,
@@ -2524,15 +2533,18 @@ ${errorStreams.length > 0 ? `  âŒ Errors     : ${errorStreams.map((s) => `    â
             let selectedStream = typeStreams.sort((a, b) => {
               // so a specific type may either have both streams not have a service, or both streams have a service
               // if both streams have a service, then we can simpl
-              const aProviderIndex =
-                this.userData.services?.findIndex(
-                  (service) => service.id === a.service?.id
-                ) ?? Infinity;
-              const bProviderIndex =
-                this.userData.services?.findIndex(
-                  (service) => service.id === b.service?.id
-                ) ?? Infinity;
-
+              let aProviderIndex =
+                this.userData.services
+                  ?.filter((service) => service.enabled)
+                  .findIndex((service) => service.id === a.service?.id) ?? 0;
+              let bProviderIndex =
+                this.userData.services
+                  ?.filter((service) => service.enabled)
+                  .findIndex((service) => service.id === b.service?.id) ?? 0;
+              aProviderIndex =
+                aProviderIndex === -1 ? Infinity : aProviderIndex;
+              bProviderIndex =
+                bProviderIndex === -1 ? Infinity : bProviderIndex;
               if (aProviderIndex !== bProviderIndex) {
                 return aProviderIndex - bProviderIndex;
               }
@@ -2561,14 +2573,17 @@ ${errorStreams.length > 0 ? `  âŒ Errors     : ${errorStreams.map((s) => `    â
               }
 
               // now look at stream type
-              const aTypeIndex =
+              let aTypeIndex =
                 this.userData.preferredStreamTypes?.findIndex(
                   (type) => type === a.type
-                ) ?? Infinity;
-              const bTypeIndex =
+                ) ?? 0;
+              let bTypeIndex =
                 this.userData.preferredStreamTypes?.findIndex(
                   (type) => type === b.type
-                ) ?? Infinity;
+                ) ?? 0;
+
+              aTypeIndex = aTypeIndex === -1 ? Infinity : aTypeIndex;
+              bTypeIndex = bTypeIndex === -1 ? Infinity : bTypeIndex;
 
               if (aTypeIndex !== bTypeIndex) {
                 return aTypeIndex - bTypeIndex;
@@ -2598,25 +2613,29 @@ ${errorStreams.length > 0 ? `  âŒ Errors     : ${errorStreams.map((s) => `    â
               )
             ).map((serviceStreams) => {
               return serviceStreams.sort((a, b) => {
-                const aAddonIndex = this.userData.presets.findIndex(
+                let aAddonIndex = this.userData.presets.findIndex(
                   (preset) => preset.instanceId === a.addon.presetInstanceId
                 );
-                const bAddonIndex = this.userData.presets.findIndex(
+                let bAddonIndex = this.userData.presets.findIndex(
                   (preset) => preset.instanceId === b.addon.presetInstanceId
                 );
+                aAddonIndex = aAddonIndex === -1 ? Infinity : aAddonIndex;
+                bAddonIndex = bAddonIndex === -1 ? Infinity : bAddonIndex;
                 if (aAddonIndex !== bAddonIndex) {
                   return aAddonIndex - bAddonIndex;
                 }
 
                 // now look at stream type
-                const aTypeIndex =
+                let aTypeIndex =
                   this.userData.preferredStreamTypes?.findIndex(
                     (type) => type === a.type
-                  ) ?? Infinity;
-                const bTypeIndex =
+                  ) ?? 0;
+                let bTypeIndex =
                   this.userData.preferredStreamTypes?.findIndex(
                     (type) => type === b.type
-                  ) ?? Infinity;
+                  ) ?? 0;
+                aTypeIndex = aTypeIndex === -1 ? Infinity : aTypeIndex;
+                bTypeIndex = bTypeIndex === -1 ? Infinity : bTypeIndex;
                 if (aTypeIndex !== bTypeIndex) {
                   return aTypeIndex - bTypeIndex;
                 }
@@ -2651,19 +2670,19 @@ ${errorStreams.length > 0 ? `  âŒ Errors     : ${errorStreams.map((s) => `    â
               )
             ).map((addonStreams) => {
               return addonStreams.sort((a, b) => {
-                const aServiceIndex =
-                  this.userData.services?.findIndex(
-                    (service) => service.id === a.service?.id
-                  ) ?? Infinity;
-                const bServiceIndex =
-                  this.userData.services?.findIndex(
-                    (service) => service.id === b.service?.id
-                  ) ?? Infinity;
+                let aServiceIndex =
+                  this.userData.services
+                    ?.filter((service) => service.enabled)
+                    .findIndex((service) => service.id === a.service?.id) ?? 0;
+                let bServiceIndex =
+                  this.userData.services
+                    ?.filter((service) => service.enabled)
+                    .findIndex((service) => service.id === b.service?.id) ?? 0;
+                aServiceIndex = aServiceIndex === -1 ? Infinity : aServiceIndex;
+                bServiceIndex = bServiceIndex === -1 ? Infinity : bServiceIndex;
                 if (aServiceIndex !== bServiceIndex) {
                   return aServiceIndex - bServiceIndex;
                 }
-
-                // look at seeders for p2p and uncached streams
                 if (type === 'p2p' || type === 'uncached') {
                   return (b.torrent?.seeders || 0) - (a.torrent?.seeders || 0);
                 }
