@@ -40,7 +40,12 @@ import {
   LuChevronsDown,
   LuShuffle,
 } from 'react-icons/lu';
-import { TbSmartHome, TbSmartHomeOff } from 'react-icons/tb';
+import {
+  TbSearch,
+  TbSearchOff,
+  TbSmartHome,
+  TbSmartHomeOff,
+} from 'react-icons/tb';
 import { AnimatePresence } from 'framer-motion';
 import { PageControls } from '../shared/page-controls';
 import Image from 'next/image';
@@ -76,7 +81,9 @@ interface CatalogModification {
   rpdb?: boolean;
   onlyOnDiscover?: boolean;
   hideable?: boolean;
+  searchable?: boolean;
   addonName?: string;
+  disableSearch?: boolean;
 }
 
 export function AddonsMenu() {
@@ -777,6 +784,19 @@ function AddonModal({
             toast.error(`${opt.name} must be at most ${opt.constraints.max}`);
             return false;
           }
+        } else if (opt.type === 'multi-select') {
+          if (opt.constraints.max && val.length > opt.constraints.max) {
+            toast.error(
+              `${opt.name} must be at most ${opt.constraints.max} items`
+            );
+            return false;
+          }
+          if (opt.constraints.min && val.length < opt.constraints.min) {
+            toast.error(
+              `${opt.name} must be at least ${opt.constraints.min} items`
+            );
+            return false;
+          }
         }
       }
     }
@@ -999,7 +1019,7 @@ function AddonGroupCard() {
           className="text-[--brand] hover:text-[--brand]/80 hover:underline"
         >
           wiki
-        </a>
+        </a>{' '}
         for a detailed guide to using groups.
       </div>
       {(userData.groups || []).map((group, index) => (
@@ -1096,6 +1116,7 @@ function CatalogSettingsCard() {
                 addonName: nMod.addonName,
                 type: nMod.type,
                 hideable: nMod.hideable,
+                searchable: nMod.searchable,
               };
             }
             return eMod;
@@ -1112,6 +1133,7 @@ function CatalogSettingsCard() {
                 shuffle: false,
                 rpdb: userData.rpdbApiKey ? true : false,
                 hideable: catalog.hideable,
+                searchable: catalog.searchable,
                 addonName: catalog.addonName,
               });
             }
@@ -1375,6 +1397,10 @@ function SortableCatalogItem({
   const dynamicIconSize = `text-xl h-8 w-8 lg:text-2xl lg:h-10 lg:w-10`;
 
   const handleNameAndTypeEdit = () => {
+    if (!newType) {
+      toast.error('Type cannot be empty');
+      return;
+    }
     setUserData((prev) => ({
       ...prev,
       catalogModifications: prev.catalogModifications?.map((c) =>
@@ -1406,7 +1432,8 @@ function SortableCatalogItem({
           <div className="mb-4 md:mb-6 md:pr-40">
             <div className="flex items-center gap-2 mb-1">
               <h3 className="text-sm md:text-base font-medium line-clamp-1 truncate text-ellipsis">
-                {catalog.addonName} - {catalog.name ?? catalog.id}
+                {catalog.name ?? catalog.id} -{' '}
+                {capitalise(catalog.overrideType ?? catalog.type)}
               </h3>
               <IconButton
                 className="rounded-full h-5 w-5 md:h-6 md:w-6 flex-shrink-0"
@@ -1415,11 +1442,8 @@ function SortableCatalogItem({
                 onClick={() => setModalOpen(true)}
               />
             </div>
-            <p className="text-xs md:text-sm text-[var(--muted-foreground)] capitalize mb-2 md:mb-0">
-              {catalog.overrideType !== undefined &&
-              catalog.overrideType !== catalog.type
-                ? `${catalog.overrideType} (${catalog.type})`
-                : catalog.type}
+            <p className="text-xs md:text-sm text-[var(--muted-foreground)] mb-2 md:mb-0">
+              {catalog.addonName}
             </p>
 
             {/* Mobile Controls Row - only visible on small screens */}
@@ -1580,6 +1604,43 @@ function SortableCatalogItem({
                         Discover Only
                       </Tooltip>
                     )}
+
+                    {catalog.searchable && (
+                      <Tooltip
+                        trigger={
+                          <IconButton
+                            className={dynamicIconSize}
+                            icon={
+                              catalog.disableSearch ? (
+                                <TbSearchOff />
+                              ) : (
+                                <TbSearch />
+                              )
+                            }
+                            intent="primary-subtle"
+                            rounded
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setUserData((prev) => ({
+                                ...prev,
+                                catalogModifications:
+                                  prev.catalogModifications?.map((c) =>
+                                    c.id === catalog.id &&
+                                    c.type === catalog.type
+                                      ? {
+                                          ...c,
+                                          disableSearch: !c.disableSearch,
+                                        }
+                                      : c
+                                  ),
+                              }));
+                            }}
+                          />
+                        }
+                      >
+                        Searchable
+                      </Tooltip>
+                    )}
                   </div>
                 </div>
               </AccordionTrigger>
@@ -1675,6 +1736,26 @@ function SortableCatalogItem({
                         }}
                       />
                     )}
+
+                    {catalog.searchable && (
+                      <Switch
+                        label="Disable Search"
+                        help="Disable the search for this catalog"
+                        side="right"
+                        value={catalog.disableSearch ?? false}
+                        onValueChange={(disableSearch) => {
+                          setUserData((prev) => ({
+                            ...prev,
+                            catalogModifications:
+                              prev.catalogModifications?.map((c) =>
+                                c.id === catalog.id && c.type === catalog.type
+                                  ? { ...c, disableSearch }
+                                  : c
+                              ),
+                          }));
+                        }}
+                      />
+                    )}
                   </div>
                 </div>
               </AccordionContent>
@@ -1708,8 +1789,6 @@ function SortableCatalogItem({
             placeholder="Enter catalog type"
             value={newType}
             onValueChange={setNewType}
-            required
-            help="Override the type of the catalog. This can break the catalog and its behaviour."
           />
 
           <Button className="w-full" type="submit">
