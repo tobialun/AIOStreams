@@ -157,14 +157,15 @@ export class OpenSubtitlesV3PlusPreset extends Preset {
 
     return {
       ID: 'opensubtitles-v3-plus',
-      NAME: 'OpenSubtitles V3+',
+      NAME: 'OpenSubtitles V3 Pro',
       LOGO: 'https://i.ibb.co/yN39ZPV/opensubtitles-plus-256x256.png',
       URL: Env.OPENSUBTITLES_V3_PLUS_URL,
       TIMEOUT: Env.DEFAULT_OPENSUBTITLES_V3_PLUS_TIMEOUT || Env.DEFAULT_TIMEOUT,
       USER_AGENT:
         Env.DEFAULT_OPENSUBTITLES_V3_PLUS_USER_AGENT || Env.DEFAULT_USER_AGENT,
       SUPPORTED_SERVICES: [],
-      DESCRIPTION: 'OpenSubtitles V3+ addon',
+      DESCRIPTION:
+        'Subtitles from OpenSubtitles with language selection and more features',
       OPTIONS: options,
       SUPPORTED_STREAM_TYPES: [],
       SUPPORTED_RESOURCES: supportedResources,

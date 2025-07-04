@@ -992,16 +992,14 @@ export class AIOStreams {
   private async assignPublicIps() {
     let userIp = this.userData.ip;
     let proxyIp = undefined;
-    if (this.userData.proxy && this.userData.proxy.enabled) {
+    if (this.userData.proxy?.enabled) {
       proxyIp = await this.getProxyIp();
     }
     for (const addon of this.addons) {
       const proxy =
-        this.userData.proxy &&
+        this.userData.proxy?.enabled &&
         (!this.userData.proxy?.proxiedAddons?.length ||
-          this.userData.proxy.proxiedAddons.includes(
-            addon.presetInstanceId || ''
-          ));
+          this.userData.proxy.proxiedAddons.includes(addon.presetInstanceId));
       logger.debug(
         `Using ${proxy ? 'proxy' : 'user'} ip for ${getAddonName(addon)}: ${
           proxy

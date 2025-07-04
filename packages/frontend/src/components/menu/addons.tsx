@@ -39,6 +39,9 @@ import {
   LuChevronsUp,
   LuChevronsDown,
   LuShuffle,
+  LuSettings,
+  LuExternalLink,
+  LuCircleCheck,
 } from 'react-icons/lu';
 import {
   TbSearch,
@@ -69,6 +72,7 @@ import { FaArrowRightLong, FaRankingStar, FaShuffle } from 'react-icons/fa6';
 import { PiStarFill, PiStarBold } from 'react-icons/pi';
 import { IoExtensionPuzzle } from 'react-icons/io5';
 import { NumberInput } from '../ui/number-input';
+import { useDisclosure } from '@/hooks/disclosure';
 
 interface CatalogModification {
   id: string;
@@ -93,6 +97,8 @@ export function AddonsMenu() {
     </PageWrapper>
   );
 }
+
+const manifestCache = new Map<string, any>();
 
 function Content() {
   const { status } = useStatus();
@@ -536,6 +542,13 @@ function SortableAddonItem({
   onRemove: () => void;
   onToggleEnabled: (v: boolean) => void;
 }) {
+  const { userData, setUserData } = useUserData();
+  const [isConfigurable, setIsConfigurable] = useState(false);
+  const [step, setStep] = useState(1);
+  // const [configModalOpen, setConfigModalOpen] = useState(false);
+  const configModalOpen = useDisclosure(false);
+  const [newManifestUrl, setNewManifestUrl] = useState('');
+  const [loading, setLoading] = useState(false);
   const {
     attributes,
     listeners,
@@ -551,6 +564,99 @@ function SortableAddonItem({
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  useEffect(() => {
+    if (configModalOpen.isOpen) {
+      setStep(1);
+    }
+  }, [configModalOpen.isOpen]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (presetMetadata.ID === 'custom' && preset.options.manifestUrl) {
+      const manifestUrl = preset.options.manifestUrl.replace(
+        /^stremio:\/\//,
+        'https://'
+      );
+      const cached = manifestCache.get(manifestUrl);
+      if (cached) {
+        setIsConfigurable(cached.behaviorHints?.configurable === true);
+        return; // Don't fetch again
+      }
+
+      fetch(manifestUrl)
+        .then((r) => r.json())
+        .then((manifest) => {
+          manifestCache.set(manifestUrl, manifest);
+          if (active) {
+            setIsConfigurable(manifest?.behaviorHints?.configurable === true);
+          }
+        })
+        .catch(() => {
+          if (active) setIsConfigurable(false);
+        });
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [presetMetadata.ID, preset.options.manifestUrl]);
+
+  const handleManifestUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newManifestUrl) {
+      toast.error('Please enter a new manifest URL');
+      return;
+    }
+
+    const regex = /^(https?|stremio):\/\/.+\/manifest\.json$/;
+    if (!regex.test(newManifestUrl)) {
+      toast.error('Please enter a valid manifest URL');
+      return;
+    }
+
+    // attempt to fetch the manifest
+    try {
+      setLoading(true);
+      const response = await fetch(newManifestUrl);
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
+      await response.json();
+    } catch (error: any) {
+      toast.error(`Failed to fetch or parse manifest: ${error.message}`);
+      return;
+    }
+
+    setUserData((prev) => ({
+      ...prev,
+      presets: prev.presets.map((p) =>
+        p.instanceId === preset.instanceId
+          ? {
+              ...p,
+              options: {
+                ...p.options,
+                manifestUrl: newManifestUrl,
+              },
+            }
+          : p
+      ),
+    }));
+
+    setNewManifestUrl('');
+    configModalOpen.close();
+    toast.success('Manifest URL updated successfully');
+    setLoading(false);
+  };
+
+  const getConfigureUrl = () => {
+    if (!preset.options.manifestUrl) return '';
+    return preset.options.manifestUrl
+      .replace(/^stremio:\/\//, 'https://')
+      .replace(/\/manifest\.json$/, '/configure');
+  };
+
   return (
     <li ref={setNodeRef} style={style}>
       <div className="px-2.5 py-2 bg-[var(--background)] rounded-[--radius-md] border flex gap-2 sm:gap-3 relative">
@@ -584,6 +690,14 @@ function SortableAddonItem({
             onValueChange={onToggleEnabled}
             size="sm"
           />
+          {isConfigurable && presetMetadata.ID === 'custom' && (
+            <IconButton
+              className="rounded-full h-8 w-8 md:h-10 md:w-10"
+              icon={<LuSettings />}
+              intent="primary-subtle"
+              onClick={() => configModalOpen.open()}
+            />
+          )}
           <IconButton
             className="rounded-full h-8 w-8 md:h-10 md:w-10"
             icon={<BiEdit />}
@@ -598,6 +712,81 @@ function SortableAddonItem({
           />
         </div>
       </div>
+
+      <Modal
+        open={configModalOpen.isOpen}
+        onOpenChange={configModalOpen.toggle}
+        // title={`Reconfigure ${preset.options.name}`}
+        title={
+          <>
+            <span className="mr-1.5">Reconfigure</span>
+            <span className="font-semibold truncate overflow-hidden text-ellipsis">
+              {preset.options.name}
+            </span>
+          </>
+        }
+        titleClass="truncate max-w-sm" // Add padding-right to avoid close button and truncate
+      >
+        {step === 1 && (
+          <div className="text-center space-y-4">
+            <div className="mx-auto bg-[--subtle] rounded-full h-12 w-12 flex items-center justify-center">
+              <LuExternalLink className="h-6 w-6 text-[--brand]" />
+            </div>
+            <h3 className="text-lg font-semibold">Reconfigure in a new tab</h3>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              You'll be taken to a new tab to adjust your settings. Once
+              finished, you will be given a new manifest URL to paste back here.
+            </p>
+            <Button
+              className="w-full"
+              onClick={() => {
+                window.open(getConfigureUrl(), '_blank');
+                setStep(2); // Move to the next step
+              }}
+            >
+              <span className="truncate">Take me to configuration</span>
+            </Button>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-4 max-w-md">
+            <div className="text-center">
+              <div className="mx-auto bg-[--subtle] rounded-full h-12 w-12 flex items-center justify-center">
+                <LuCircleCheck className="h-6 w-6 text-[--brand]" />
+              </div>
+              <h3 className="text-lg font-semibold">Awaiting New URL</h3>
+              <p className="text-sm text-[var(--muted-foreground)]">
+                After adjusting your settings, copy the manifest URL and paste
+                it below.
+              </p>
+            </div>
+            <form onSubmit={handleManifestUpdate} className="space-y-4 pt-2">
+              <TextInput
+                type="url"
+                label="New Manifest URL"
+                placeholder="Paste your new URL here"
+                value={newManifestUrl}
+                onValueChange={setNewManifestUrl}
+                required
+                autoFocus // Focus the input since it's the next logical action
+              />
+              <div className="flex gap-2">
+                <Button intent="primary-subtle" onClick={() => setStep(1)}>
+                  Back
+                </Button>
+                <Button
+                  loading={loading}
+                  type="submit"
+                  className="max-w-sm w-full text-ellipsis whitespace-nowrap overflow-hidden text-left"
+                >
+                  Update {preset.options.name}
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
+      </Modal>
     </li>
   );
 }
