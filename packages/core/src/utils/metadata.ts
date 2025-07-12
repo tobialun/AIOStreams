@@ -1,6 +1,7 @@
 import { Env } from './env';
 import { Cache } from './cache';
 import { TYPES } from './constants';
+import { makeRequest } from './http';
 
 export type ExternalIdType = 'imdb' | 'tmdb' | 'tvdb';
 
@@ -85,16 +86,17 @@ export class TMDBMetadata {
     const url = new URL(API_BASE_URL + FIND_BY_ID_PATH + `/${id.value}`);
     url.searchParams.set('external_source', `${id.type}_id`);
 
-    const response = await fetch(url, {
-      headers: this.getHeaders(),
-      signal: AbortSignal.timeout(10000),
-    });
+    const response = await makeRequest(
+      url.toString(),
+      10000,
+      this.getHeaders()
+    );
 
     if (!response.ok) {
       throw new Error(`${response.status} - ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data: any = await response.json();
     const results = type === 'movie' ? data.movie_results : data.tv_results;
     const meta = results?.[0];
 
@@ -146,16 +148,17 @@ export class TMDBMetadata {
         `/${tmdbId}`
     );
 
-    const detailsResponse = await fetch(detailsUrl, {
-      headers: this.getHeaders(),
-      signal: AbortSignal.timeout(10000),
-    });
+    const detailsResponse = await makeRequest(
+      detailsUrl.toString(),
+      10000,
+      this.getHeaders()
+    );
 
     if (!detailsResponse.ok) {
       throw new Error(`Failed to fetch details: ${detailsResponse.statusText}`);
     }
 
-    const detailsData = await detailsResponse.json();
+    const detailsData: any = await detailsResponse.json();
     const primaryTitle =
       type === 'movie' ? detailsData.title : detailsData.name;
     const year = this.parseReleaseDate(
@@ -170,10 +173,11 @@ export class TMDBMetadata {
         ALTERNATIVE_TITLES_PATH
     );
 
-    const altTitlesResponse = await fetch(altTitlesUrl, {
-      headers: this.getHeaders(),
-      signal: AbortSignal.timeout(10000),
-    });
+    const altTitlesResponse = await makeRequest(
+      altTitlesUrl.toString(),
+      10000,
+      this.getHeaders()
+    );
 
     if (!altTitlesResponse.ok) {
       throw new Error(
@@ -181,7 +185,7 @@ export class TMDBMetadata {
       );
     }
 
-    const altTitlesData = await altTitlesResponse.json();
+    const altTitlesData: any = await altTitlesResponse.json();
     const alternativeTitles =
       type === 'movie'
         ? altTitlesData.titles.map((title: any) => title.title)
@@ -205,16 +209,17 @@ export class TMDBMetadata {
       return cachedResult;
     }
     const url = new URL(API_BASE_URL + '/authentication');
-    const validationResponse = await fetch(url, {
-      headers: this.getHeaders(),
-      signal: AbortSignal.timeout(10000),
-    });
+    const validationResponse = await makeRequest(
+      url.toString(),
+      10000,
+      this.getHeaders()
+    );
     if (!validationResponse.ok) {
       throw new Error(
         `Failed to validate TMDB access token: ${validationResponse.statusText}`
       );
     }
-    const validationData = await validationResponse.json();
+    const validationData: any = await validationResponse.json();
     const isValid = validationData.success;
     this.validationCache.set(cacheKey, isValid, ACCESS_TOKEN_CACHE_TTL);
     return isValid;
