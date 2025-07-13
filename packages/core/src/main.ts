@@ -931,7 +931,10 @@ export class AIOStreams {
               genreExtra.isRequired = true;
             } else {
               // add a new genre extra with only one option 'None'
-              catalog.extra?.push({
+              if (!catalog.extra) {
+                catalog.extra = [];
+              }
+              catalog.extra.push({
                 name: 'genre',
                 options: ['None'],
                 isRequired: true,

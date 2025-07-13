@@ -86,11 +86,10 @@ export class TMDBMetadata {
     const url = new URL(API_BASE_URL + FIND_BY_ID_PATH + `/${id.value}`);
     url.searchParams.set('external_source', `${id.type}_id`);
 
-    const response = await makeRequest(
-      url.toString(),
-      10000,
-      this.getHeaders()
-    );
+    const response = await makeRequest(url.toString(), {
+      timeout: 10000,
+      headers: this.getHeaders(),
+    });
 
     if (!response.ok) {
       throw new Error(`${response.status} - ${response.statusText}`);
@@ -148,11 +147,10 @@ export class TMDBMetadata {
         `/${tmdbId}`
     );
 
-    const detailsResponse = await makeRequest(
-      detailsUrl.toString(),
-      10000,
-      this.getHeaders()
-    );
+    const detailsResponse = await makeRequest(detailsUrl.toString(), {
+      timeout: 10000,
+      headers: this.getHeaders(),
+    });
 
     if (!detailsResponse.ok) {
       throw new Error(`Failed to fetch details: ${detailsResponse.statusText}`);
@@ -173,11 +171,10 @@ export class TMDBMetadata {
         ALTERNATIVE_TITLES_PATH
     );
 
-    const altTitlesResponse = await makeRequest(
-      altTitlesUrl.toString(),
-      10000,
-      this.getHeaders()
-    );
+    const altTitlesResponse = await makeRequest(altTitlesUrl.toString(), {
+      timeout: 10000,
+      headers: this.getHeaders(),
+    });
 
     if (!altTitlesResponse.ok) {
       throw new Error(
@@ -209,11 +206,10 @@ export class TMDBMetadata {
       return cachedResult;
     }
     const url = new URL(API_BASE_URL + '/authentication');
-    const validationResponse = await makeRequest(
-      url.toString(),
-      10000,
-      this.getHeaders()
-    );
+    const validationResponse = await makeRequest(url.toString(), {
+      timeout: 10000,
+      headers: this.getHeaders(),
+    });
     if (!validationResponse.ok) {
       throw new Error(
         `Failed to validate TMDB access token: ${validationResponse.statusText}`
