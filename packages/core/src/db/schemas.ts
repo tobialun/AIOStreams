@@ -373,6 +373,7 @@ export const UserDataSchema = z.object({
   hideErrors: z.boolean().optional(),
   hideErrorsForResources: z.array(ResourceSchema).optional(),
   showStatistics: z.boolean().optional(),
+  statisticsPosition: z.enum(['top', 'bottom']).optional(),
   tmdbAccessToken: z.string().optional(),
   titleMatching: z
     .object({
@@ -555,7 +556,7 @@ const MetaVideoSchema = z
     title: z.string().or(z.null()).optional(),
     name: z.string().or(z.null()).optional(),
     released: z.string().datetime().or(z.null()).optional(),
-    thumbnail: z.string().url().or(z.null()).optional(),
+    thumbnail: z.string().or(z.null()).optional(),
     streams: z.array(StreamSchema).or(z.null()).optional(),
     available: z.boolean().or(z.null()).optional(),
     episode: z.number().or(z.null()).optional(),
@@ -636,21 +637,12 @@ export type AddonCatalogResponse = z.infer<typeof AddonCatalogResponseSchema>;
 export type AddonCatalog = z.infer<typeof AddonCatalogSchema>;
 
 export const ExtrasTypesSchema = z.enum(['skip', 'genre', 'search']);
-
-const ExtraSkipSchema = z.object({
-  skip: z.coerce.number(),
+export type ExtrasTypes = z.infer<typeof ExtrasTypesSchema>;
+export const ExtrasSchema = z.object({
+  skip: z.coerce.number().optional(),
+  genre: z.string().optional(),
+  search: z.string().optional(),
 });
-const ExtraGenreSchema = z.object({
-  genre: z.string(),
-});
-const ExtraSearchSchema = z.object({
-  search: z.string(),
-});
-export const ExtrasSchema = z.union([
-  ExtraSkipSchema,
-  ExtraGenreSchema,
-  ExtraSearchSchema,
-]);
 export type Extras = z.infer<typeof ExtrasSchema>;
 
 const ParsedFileSchema = z.object({
