@@ -14,6 +14,8 @@ import {
   maskSensitiveInfo,
   Cache,
   CatalogExtras,
+  TMDBMetadata,
+  Metadata,
 } from './utils';
 import { Wrapper } from './wrapper';
 import { PresetManager } from './presets';
@@ -572,7 +574,7 @@ export class AIOStreams {
     id: string,
     extras?: string
   ): Promise<AIOStreamsResponse<Subtitle[]>> {
-    logger.info(`getSubtitles: ${id}`);
+    logger.info(`Handling subtitle request`, { type, id, extras });
 
     // Find all addons that support subtitles for this type and id prefix
     const supportedAddons = [];
@@ -1132,24 +1134,50 @@ export class AIOStreams {
     }
     const season = match[1];
     const episode = match[2];
+    let episodeCount = undefined;
+    let metadata: Metadata | undefined;
+    try {
+      metadata = await new TMDBMetadata(
+        this.userData.tmdbAccessToken
+      ).getMetadata(id, type as any);
+      if (metadata?.seasons) {
+        episodeCount = metadata.seasons.find(
+          (s) => s.season_number === Number(season)
+        )?.episode_count;
+      }
+    } catch (error) {
+      logger.warning(`Error getting metadata for ${id}`, {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     const titleId = id.replace(seasonEpisodeRegex, '');
-    const nextEpisodeId = `${titleId}:${season}:${Number(episode) + 1}`;
+    let episodeToPrecache = Number(episode) + 1;
+    let seasonToPrecache = season;
+    if (episodeCount && Number(episode) === episodeCount) {
+      const nextSeason = Number(season) + 1;
+      if (metadata?.seasons?.find((s) => s.season_number === nextSeason)) {
+        logger.debug(
+          `Detected that the current episode is the last episode of the season, precaching first episode of next season instead`
+        );
+        episodeToPrecache = 1;
+        seasonToPrecache = nextSeason.toString();
+      }
+    }
+    const precacheId = `${titleId}:${seasonToPrecache}:${episodeToPrecache}`;
     logger.info(`Pre-caching next episode of ${titleId}`, {
       season,
       episode,
-      nextEpisode: Number(episode) + 1,
-      nextEpisodeId,
+      episodeToPrecache,
+      seasonToPrecache,
+      precacheId,
     });
     // modify userData to remove the excludeUncached filter
     const userData = structuredClone(this.userData);
     userData.excludeUncached = false;
     userData.groups = undefined;
     this.setUserData(userData);
-    const nextStreamsResponse = await this.getStreams(
-      nextEpisodeId,
-      type,
-      true
-    );
+    const nextStreamsResponse = await this.getStreams(precacheId, type, true);
     if (nextStreamsResponse.success) {
       const nextStreams = nextStreamsResponse.data.streams;
       const serviceStreams = nextStreams.filter((stream) => stream.service);
